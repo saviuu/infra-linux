@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Script de Provisionamento de um Servidor Web
+# Autor: Sávio
+# Data: $(date +%d/%m/%Y)
+
+echo "### Atualizando o servidor..."
+sudo apt update -y
+sudo apt upgrade -y
+
+echo "### Instalando o servidor Apache..."
+sudo apt install apache2 -y
+
+echo "### Habilitando o serviço do Apache para iniciar automaticamente..."
+sudo systemctl enable apache2
+sudo systemctl start apache2
+
+echo "### Instalando o Git (opcional para versionamento ou deploy futuro)..."
+sudo apt install git -y
+
+echo "### Configurando o firewall para liberar o tráfego HTTP e HTTPS..."
+sudo ufw allow 'Apache Full'
+sudo ufw reload
+
+echo "### Criando diretório do site..."
+sudo mkdir -p /var/www/meusite
+sudo chown -R $USER:$USER /var/www/meusite
+sudo chmod -R 755 /var/www/meusite
+
+echo "### Criando uma página de teste..."
+cat <<EOL > /var/www/meusite/index.html
+<html>
+  <head>
+    <title>Servidor Web Provisionado</title>
+  </head>
+  <body>
+    <h1>Provisionamento concluído com sucesso!</h1>
+    <p>Servidor web rodando em $(hostname -I)</p>
+  </body>
+</html>
+EOL
+
+echo "### Criando configuração do Apache para o site..."
+sudo bash -c 'cat <<EOF > /etc/apache2/sites-available/meusite.conf
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/meusite
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+EOF'
+
+echo "### Habilitando o site e desabilitando o padrão..."
+sudo a2ensite meusite.conf
+sudo a2dissite 000-default.conf
+sudo systemctl reload apache2
+
+echo "### Servidor web instalado e rodando! Acesse pelo IP: $(hostname -I)"
